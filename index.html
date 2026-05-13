@@ -1,1 +1,420 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Контент-план</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f4f8;--surface:#fff;--surface2:#eef0f5;--border:#dde0ea;--accent:#2a5bff;--accent2:#7c3fff;--text:#1a1c2e;--sub:#5a5d78;--muted:#9a9db8;--success:#14a860;--warn:#d97700;--danger:#e03050;--r:12px;}
+*{box-sizing:border-box;margin:0;padding:0;}html,body{height:100%;}
+body{background:var(--bg);color:var(--text);font-family:'Onest',sans-serif;font-size:14px;-webkit-text-size-adjust:100%;}
+.sync-bar{display:flex;align-items:center;justify-content:center;gap:8px;padding:7px 16px;font-size:12px;background:#f0f4ff;color:var(--accent);border-bottom:1px solid #d0daff;}
+.sync-bar.ok{background:#edfcf4;color:var(--success);border-color:#c3f0d8;}
+.sync-bar.err{background:#fff4f6;color:var(--danger);border-color:#ffd0da;}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;gap:10px;}
+.logo{font-family:'Unbounded',sans-serif;font-size:11px;letter-spacing:.1em;color:var(--accent);white-space:nowrap;cursor:pointer;border-bottom:1px dashed var(--accent);padding-bottom:1px;}
+.h-title{font-family:'Unbounded',sans-serif;font-size:12px;color:var(--text);flex:1;text-align:center;}
+.h-add{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-family:'Onest',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.month-nav{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);}
+.nav-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:8px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.month-label{font-family:'Unbounded',sans-serif;font-size:13px;flex:1;text-align:center;}
+.stats-row{display:flex;gap:14px;flex-wrap:wrap;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border);}
+.stat-chip{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--sub);}
+.stat-chip b{font-family:'Unbounded',sans-serif;font-size:11px;color:var(--text);}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dot.done{background:var(--success);}.dot.wip{background:var(--warn);}.dot.all{background:var(--muted);}
+.calendar-wrap{padding:10px 8px;}
+.weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;}
+.wd{text-align:center;font-size:10px;font-family:'Unbounded',sans-serif;letter-spacing:.04em;color:var(--muted);padding:4px 0;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.day-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);min-height:88px;padding:7px 5px 6px;display:flex;flex-direction:column;gap:4px;}
+@media(min-width:600px){.day-cell{min-height:120px;padding:10px;}}
+.day-cell.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+.day-cell.empty-day{background:transparent;border-color:transparent;}
+.day-num{font-family:'Unbounded',sans-serif;font-size:11px;color:var(--muted);line-height:1;}
+.today .day-num{color:var(--accent);}
+.post-mini{background:var(--surface2);border-radius:5px;padding:4px 5px;font-size:11px;line-height:1.3;border-left:3px solid var(--border);cursor:pointer;}
+.post-mini.pub{border-left-color:var(--success);}.post-mini.wip{border-left-color:var(--warn);}
+.pm-type{font-size:9px;font-family:'Unbounded',sans-serif;text-transform:uppercase;}
+.pm-title{color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pm-who{font-size:9px;color:var(--muted);margin-top:1px;}
+.add-btn{margin-top:auto;background:none;border:1px dashed var(--border);color:var(--muted);border-radius:6px;width:100%;padding:3px;font-size:16px;cursor:pointer;line-height:1;}
+.overlay{display:none;position:fixed;inset:0;background:rgba(26,28,46,.35);z-index:500;align-items:flex-end;justify-content:center;}
+@media(min-width:600px){.overlay{align-items:center;padding:16px;}}
+.overlay.open{display:flex;}
+.modal{background:var(--surface);width:100%;max-width:540px;max-height:92dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:20px 20px 0 0;padding:20px 18px 36px;display:flex;flex-direction:column;gap:16px;animation:sheetUp .2s ease;}
+@media(min-width:600px){.modal{border-radius:18px;padding:26px;}}
+@keyframes sheetUp{from{opacity:0;transform:translateY(40px);}to{opacity:1;transform:none;}}
+.drag-handle{width:40px;height:4px;border-radius:2px;background:var(--border);margin:0 auto -8px;flex-shrink:0;}
+@media(min-width:600px){.drag-handle{display:none;}}
+.modal-head{display:flex;justify-content:space-between;align-items:center;}
+.modal-title{font-family:'Unbounded',sans-serif;font-size:13px;color:var(--accent);}
+.modal-close{background:var(--surface2);border:1px solid var(--border);color:var(--sub);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.field{display:flex;flex-direction:column;gap:6px;}
+.field label{font-size:10px;font-family:'Unbounded',sans-serif;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;}
+.field input,.field select,.field textarea{background:var(--surface2);border:1.5px solid var(--border);color:var(--text);border-radius:10px;padding:11px 13px;font-family:'Onest',sans-serif;font-size:14px;outline:none;transition:border-color .12s;width:100%;-webkit-appearance:none;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+.field textarea{resize:vertical;min-height:70px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.status-row{display:flex;gap:8px;}
+.s-btn{flex:1;padding:10px 6px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--sub);font-family:'Onest',sans-serif;font-size:13px;font-weight:500;cursor:pointer;text-align:center;transition:all .12s;}
+.s-btn.on-wip{background:#fff8ec;border-color:var(--warn);color:var(--warn);}
+.s-btn.on-pub{background:#edfcf4;border-color:var(--success);color:var(--success);}
+.link-row{display:flex;gap:8px;align-items:center;}
+.link-row input{flex:1;}
+.link-row button{background:var(--accent2);color:#fff;border:none;border-radius:10px;padding:0 16px;height:44px;font-family:'Onest',sans-serif;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.chip{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 10px;font-size:12px;}
+.chip a{color:var(--accent2);text-decoration:none;}
+.chip .rml{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0;line-height:1;}
+.save-btn{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:14px;width:100%;font-family:'Unbounded',sans-serif;font-size:12px;letter-spacing:.04em;cursor:pointer;}
+.show-del-btn{background:none;border:1.5px solid #f8c8d0;color:var(--danger);border-radius:12px;padding:11px;width:100%;font-family:'Onest',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:none;}
+.del-panel{background:#fff4f6;border:1.5px solid #ffd0da;border-radius:12px;padding:14px 16px;display:none;flex-direction:column;gap:10px;}
+.del-panel.show{display:flex;}
+.del-panel p{font-size:13px;color:var(--danger);font-weight:500;text-align:center;}
+.del-row{display:flex;gap:8px;}
+.del-yes{background:var(--danger);color:#fff;border:none;border-radius:10px;padding:12px;flex:1;font-family:'Onest',sans-serif;font-size:14px;font-weight:600;cursor:pointer;}
+.del-no{background:var(--surface2);color:var(--sub);border:1.5px solid var(--border);border-radius:10px;padding:12px;flex:1;font-family:'Onest',sans-serif;font-size:14px;cursor:pointer;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+</style>
+</head>
+<body>
 
+<div class="sync-bar" id="syncBar"><div class="sync-dot"></div><span id="syncText">Подключение...</span></div>
+
+<header class="header">
+  <div class="logo" id="logoName" onclick="openNameEdit()">КОМАНДА</div>
+  <div class="h-title">Контент-план</div>
+  <button class="h-add" onclick="openNew()">+ Пост</button>
+</header>
+
+<div class="month-nav">
+  <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+  <div class="month-label" id="monthLabel"></div>
+  <button class="nav-btn" onclick="changeMonth(1)">›</button>
+</div>
+<div class="stats-row" id="statsRow"></div>
+<div class="calendar-wrap">
+  <div class="weekdays">
+    <div class="wd">ПН</div><div class="wd">ВТ</div><div class="wd">СР</div>
+    <div class="wd">ЧТ</div><div class="wd">ПТ</div><div class="wd">СБ</div><div class="wd">ВС</div>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+</div>
+
+<!-- NAME MODAL -->
+<div class="overlay" id="nameOverlay" onclick="if(event.target===this)closeNameEdit()">
+  <div class="modal" style="gap:14px;">
+    <div class="drag-handle"></div>
+    <div class="modal-head">
+      <div class="modal-title">Название проекта</div>
+      <button class="modal-close" onclick="closeNameEdit()">✕</button>
+    </div>
+    <div class="field">
+      <label>Имя / Проект</label>
+      <input type="text" id="fProjName" placeholder="Введите название..." maxlength="40">
+    </div>
+    <button class="save-btn" onclick="saveProjName()">Сохранить</button>
+  </div>
+</div>
+
+<!-- POST MODAL -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="drag-handle"></div>
+    <div class="modal-head">
+      <div class="modal-title" id="mTitle">Новый пост</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Тип контента</label>
+        <select id="fType">
+          <option value="Reels">🎬 Reels</option>
+          <option value="Пост">📸 Пост</option>
+          <option value="Карусель">🎠 Карусель</option>
+          <option value="Сторис">📱 Сторис</option>
+          <option value="Клип">🎥 Клип</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Дата</label>
+        <input type="date" id="fDate">
+      </div>
+    </div>
+    <div class="field">
+      <label>Тема контента</label>
+      <input type="text" id="fTitle" placeholder="Кейс / Совет / Акция...">
+    </div>
+    <div class="field">
+      <label>Описание / Бриф</label>
+      <textarea id="fDesc" placeholder="Ключевые тезисы, текст, детали..."></textarea>
+    </div>
+    <div class="field">
+      <label>Ответственный</label>
+      <select id="fAssign">
+        <option value="">— не назначен —</option>
+        <option value="Ислам">Ислам</option>
+        <option value="Алия">Алия</option>
+        <option value="Фарида">Фарида</option>
+        <option value="Дарина">Дарина</option>
+        <option value="Адока">Адока</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Статус</label>
+      <div class="status-row">
+        <button class="s-btn" id="btnWip" onclick="setStatus('wip')">✏️ В работе</button>
+        <button class="s-btn" id="btnPub" onclick="setStatus('pub')">✅ Опубликовано</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Ссылки / Референсы</label>
+      <div class="link-row">
+        <input type="text" id="fLink" placeholder="Ссылка, @аккаунт, заметка...">
+        <button onclick="addLink()">+ Добавить</button>
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+    <button class="save-btn" onclick="savePost()">Сохранить пост</button>
+    <button class="show-del-btn" id="showDelBtn" onclick="toggleDel()">🗑 Удалить этот пост</button>
+    <div class="del-panel" id="delPanel">
+      <p>Удалить пост безвозвратно?</p>
+      <div class="del-row">
+        <button class="del-yes" onclick="deletePost()">Да, удалить</button>
+        <button class="del-no" onclick="toggleDel()">Отмена</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase compat SDK (глобальный объект firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+// ── Firebase init ──────────────────────────────────────────
+firebase.initializeApp({
+  apiKey:            "AIzaSyC72qJNNl592RgkA-fiLVj9tBcqn5p2RgE",
+  authDomain:        "control-post.firebaseapp.com",
+  databaseURL:       "https://control-post-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "control-post",
+  storageBucket:     "control-post.firebasestorage.app",
+  messagingSenderId: "304151152069",
+  appId:             "1:304151152069:web:6dff8f2020d2752da037ac"
+});
+var db = firebase.database();
+
+// ── Globals ────────────────────────────────────────────────
+var MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+var TC = {Reels:'#c026d3',Пост:'#2a5bff',Карусель:'#16a860',Сторис:'#d97700',Клип:'#e03050'};
+var yr = new Date().getFullYear();
+var mo = new Date().getMonth();
+var posts = [];
+var editId = null;
+var links = [];
+var st = 'wip';
+
+// ── Sync bar ───────────────────────────────────────────────
+function setSyncBar(state, text) {
+  var b = document.getElementById('syncBar');
+  b.className = 'sync-bar' + (state ? ' ' + state : '');
+  document.getElementById('syncText').textContent = text;
+}
+
+// ── Project name ───────────────────────────────────────────
+db.ref('settings/projName').on('value', function(snap) {
+  var v = snap.val();
+  if (v) document.getElementById('logoName').textContent = v;
+});
+
+function openNameEdit() {
+  document.getElementById('fProjName').value = document.getElementById('logoName').textContent;
+  document.getElementById('nameOverlay').classList.add('open');
+  setTimeout(function(){ document.getElementById('fProjName').focus(); }, 150);
+}
+function closeNameEdit() {
+  document.getElementById('nameOverlay').classList.remove('open');
+}
+function saveProjName() {
+  var v = document.getElementById('fProjName').value.trim();
+  if (!v) return;
+  db.ref('settings/projName').set(v.toUpperCase());
+  closeNameEdit();
+}
+
+// ── Posts realtime ─────────────────────────────────────────
+db.ref('posts').on('value', function(snap) {
+  var data = snap.val();
+  posts = data ? Object.values(data) : [];
+  setSyncBar('ok', '🟢 Синхронизировано');
+  render();
+}, function(err) {
+  setSyncBar('err', '🔴 Ошибка: ' + err.message);
+});
+
+// ── Render ─────────────────────────────────────────────────
+function render() {
+  document.getElementById('monthLabel').textContent = MONTHS[mo] + ' ' + yr;
+  var inM = posts.filter(function(p){ var d=new Date(p.date); return d.getFullYear()===yr && d.getMonth()===mo; });
+  var pub = inM.filter(function(p){ return p.status==='pub'; }).length;
+  var wip = inM.filter(function(p){ return p.status==='wip'; }).length;
+  document.getElementById('statsRow').innerHTML =
+    '<div class="stat-chip"><div class="dot done"></div><b>'+pub+'</b>&nbsp;опубликовано</div>' +
+    '<div class="stat-chip"><div class="dot wip"></div><b>'+wip+'</b>&nbsp;в работе</div>' +
+    '<div class="stat-chip"><div class="dot all"></div><b>'+inM.length+'</b>&nbsp;всего</div>';
+
+  var grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  var today = new Date();
+  var dow = new Date(yr, mo, 1).getDay();
+  dow = dow === 0 ? 6 : dow - 1;
+  var days = new Date(yr, mo+1, 0).getDate();
+
+  for (var i=0; i<dow; i++) {
+    var emp = document.createElement('div');
+    emp.className = 'day-cell empty-day';
+    grid.appendChild(emp);
+  }
+  for (var d=1; d<=days; d++) {
+    (function(day){
+      var isT = today.getDate()===day && today.getMonth()===mo && today.getFullYear()===yr;
+      var ds = yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+      var cell = document.createElement('div');
+      cell.className = 'day-cell' + (isT ? ' today' : '');
+      cell.innerHTML = '<div class="day-num">'+day+'</div>';
+
+      posts.filter(function(p){ return p.date===ds; }).forEach(function(p){
+        var col = TC[p.type] || '#888';
+        var pm = document.createElement('div');
+        pm.className = 'post-mini ' + (p.status==='pub' ? 'pub' : 'wip');
+        pm.innerHTML =
+          '<div class="pm-type" style="color:'+col+'">'+p.type+'</div>' +
+          '<div class="pm-title">'+(p.title||'(без темы)')+'</div>' +
+          (p.assignee ? '<div class="pm-who">👤 '+p.assignee+'</div>' : '');
+        pm.onclick = function(e){ e.stopPropagation(); openEdit(p.id); };
+        cell.appendChild(pm);
+      });
+
+      var ab = document.createElement('button');
+      ab.className = 'add-btn';
+      ab.textContent = '+';
+      ab.onclick = function(e){ e.stopPropagation(); openNew(ds); };
+      cell.appendChild(ab);
+      grid.appendChild(cell);
+    })(d);
+  }
+}
+
+function changeMonth(d) {
+  mo += d;
+  if (mo < 0) { mo = 11; yr--; }
+  if (mo > 11) { mo = 0; yr++; }
+  render();
+}
+
+// ── Modal: new / edit ──────────────────────────────────────
+function openNew(ds) {
+  editId = null; links = []; resetForm();
+  if (ds) document.getElementById('fDate').value = ds;
+  document.getElementById('mTitle').textContent = 'Новый пост';
+  document.getElementById('showDelBtn').style.display = 'none';
+  document.getElementById('delPanel').classList.remove('show');
+  document.getElementById('overlay').classList.add('open');
+}
+function openEdit(id) {
+  var p = posts.find(function(x){ return x.id===id; });
+  if (!p) return;
+  editId = id;
+  links = p.links ? p.links.slice() : [];
+  document.getElementById('fType').value    = p.type;
+  document.getElementById('fDate').value    = p.date;
+  document.getElementById('fTitle').value   = p.title;
+  document.getElementById('fDesc').value    = p.desc || '';
+  document.getElementById('fAssign').value  = p.assignee || '';
+  setStatus(p.status || 'wip');
+  renderChips();
+  document.getElementById('mTitle').textContent = 'Редактировать пост';
+  document.getElementById('showDelBtn').style.display = 'block';
+  document.getElementById('delPanel').classList.remove('show');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('overlay').classList.remove('open');
+}
+function resetForm() {
+  document.getElementById('fType').value   = 'Reels';
+  document.getElementById('fDate').value   = '';
+  document.getElementById('fTitle').value  = '';
+  document.getElementById('fDesc').value   = '';
+  document.getElementById('fAssign').value = '';
+  setStatus('wip');
+  document.getElementById('chips').innerHTML = '';
+  document.getElementById('fLink').value = '';
+}
+function setStatus(s) {
+  st = s;
+  document.getElementById('btnWip').className = 's-btn' + (s==='wip' ? ' on-wip' : '');
+  document.getElementById('btnPub').className = 's-btn' + (s==='pub' ? ' on-pub' : '');
+}
+
+// ── Links ──────────────────────────────────────────────────
+function addLink() {
+  var v = document.getElementById('fLink').value.trim();
+  if (!v) return;
+  links.push(v);
+  document.getElementById('fLink').value = '';
+  renderChips();
+}
+function renderChips() {
+  var w = document.getElementById('chips');
+  w.innerHTML = '';
+  links.forEach(function(l, i){
+    var c = document.createElement('div');
+    c.className = 'chip';
+    var isUrl = /^https?:\/\//.test(l);
+    var label = isUrl ? (function(){ try{ return new URL(l).hostname.replace('www.',''); }catch(e){ return l.slice(0,28); } })() : l.slice(0,36);
+    var inner = isUrl
+      ? '<a href="'+l+'" target="_blank">🔗 '+label+'</a>'
+      : '<span style="color:var(--sub)">📎 '+label+'</span>';
+    c.innerHTML = inner + '<button class="rml" onclick="rmLink('+i+')">✕</button>';
+    w.appendChild(c);
+  });
+}
+function rmLink(i) { links.splice(i,1); renderChips(); }
+
+// ── Save / Delete ──────────────────────────────────────────
+function savePost() {
+  var date = document.getElementById('fDate').value;
+  if (!date) { alert('Укажите дату'); return; }
+  var id = editId || (Date.now().toString(36) + Math.random().toString(36).slice(2,6));
+  var post = {
+    id:       id,
+    type:     document.getElementById('fType').value,
+    date:     date,
+    title:    document.getElementById('fTitle').value.trim() || '(без темы)',
+    desc:     document.getElementById('fDesc').value,
+    assignee: document.getElementById('fAssign').value,
+    status:   st,
+    links:    links.slice()
+  };
+  setSyncBar('', 'Сохранение...');
+  db.ref('posts/' + id).set(post)
+    .then(function(){ closeModal(); })
+    .catch(function(err){ setSyncBar('err','🔴 Ошибка: '+err.message); });
+}
+function toggleDel() {
+  document.getElementById('delPanel').classList.toggle('show');
+}
+function deletePost() {
+  if (!editId) return;
+  var id = editId;
+  db.ref('posts/' + id).remove()
+    .then(function(){ editId = null; closeModal(); })
+    .catch(function(err){ setSyncBar('err','🔴 Ошибка: '+err.message); });
+}
+</script>
+</body>
+</html>
